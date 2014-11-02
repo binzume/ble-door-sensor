@@ -1,0 +1,8 @@
+package net.binzume.android.whereissaifu;
+
+public class Constants {
+	
+	public static final String API_URL = "http://api.binzume.net/gss/sensors/";
+	public static final String API_KEY = "*****************"; // API update key
+
+}
