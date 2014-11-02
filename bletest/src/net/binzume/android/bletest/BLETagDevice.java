@@ -47,8 +47,8 @@ public class BLETagDevice implements Serializable {
 	public long lastRespondTime;
 	private volatile int connectState = 0;
 
-	private transient TagDeviceEventListener listener;
-	private transient BluetoothGatt gatt = null;
+	private transient volatile TagDeviceEventListener listener;
+	private transient volatile BluetoothGatt gatt = null;
 
 	public BLETagDevice(String addr) {
 		this.addr = addr;
@@ -81,6 +81,9 @@ public class BLETagDevice implements Serializable {
 		BluetoothGattCharacteristic c = characteristic(BATTERY_SERVICE_UUID, BATTERY_UUID);
 		if (c == null) {
 			Log.w(TAG, "BATTERY_STATE_UUID NOT found");
+			if (isConnected()) {
+				gatt.discoverServices();
+			}
 			return;
 		}
 		gatt.readCharacteristic(c);

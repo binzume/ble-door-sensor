@@ -1,6 +1,5 @@
 package net.binzume.android.bletest;
 
-
 import java.util.ArrayList;
 
 import android.app.ListActivity;
@@ -17,16 +16,16 @@ import android.widget.TextView;
 public class MainActivity extends ListActivity {
 	private BroadcastReceiver receiver;
 	private BLETagDevice currentDevice = null;
-	
+
 	private ArrayList<BLETagDevice> devices = new ArrayList<BLETagDevice>();
-	
+
 	private DeviceListAdapter adapter;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		
+
 		adapter = new DeviceListAdapter(this, devices);
 		setListAdapter(adapter);
 
@@ -77,6 +76,9 @@ public class MainActivity extends ListActivity {
 			public void onClick(View v) {
 				Intent intent = new Intent(getApplicationContext(), BlePolingService.class);
 				intent.setAction("close");
+				if (currentDevice != null) {
+					intent.putExtra("addr", currentDevice.addr);
+				}
 				startService(intent);
 			}
 		});
@@ -91,8 +93,7 @@ public class MainActivity extends ListActivity {
 				startService(intent);
 			}
 		});
-		
-		
+
 	}
 
 	@Override
@@ -100,12 +101,12 @@ public class MainActivity extends ListActivity {
 		currentDevice = adapter.getItem(pos);
 		update();
 	}
-	
+
 	private void update() {
 		if (currentDevice != null) {
 			BLETagDevice d = currentDevice;
 			((TextView) findViewById(R.id.NameText)).setText(d.addr);
-			((TextView) findViewById(R.id.NameText)).setText( "ADDR:" + d.addr + " (" + d.name + ")");
+			((TextView) findViewById(R.id.NameText)).setText("ADDR:" + d.addr + " (" + d.name + ")");
 			((TextView) findViewById(R.id.StatusText)).setText(d.isConnected() ? "Connected " + d.lastRssi : "Disconnected");
 			((TextView) findViewById(R.id.StatusText)).setTextColor(d.isConnected() ? Color.GREEN : Color.RED);
 		}
@@ -135,7 +136,7 @@ public class MainActivity extends ListActivity {
 						currentDevice = d;
 						update();
 						if (intent.getIntExtra("st", 0) != 0) {
-							((TextView)findViewById(R.id.StatusText)).setTextColor(Color.BLUE);
+							((TextView) findViewById(R.id.StatusText)).setTextColor(Color.BLUE);
 						}
 					}
 					adapter.add(d);
@@ -143,7 +144,7 @@ public class MainActivity extends ListActivity {
 				if ("devices".equals(intent.getAction())) {
 					Object[] dd = (Object[]) intent.getSerializableExtra("devices");
 					for (Object d : dd) {
-						adapter.add((BLETagDevice)d);
+						adapter.add((BLETagDevice) d);
 					}
 				}
 			}
@@ -153,7 +154,7 @@ public class MainActivity extends ListActivity {
 		filter.addAction("button_pressed");
 		filter.addAction("devices");
 		registerReceiver(receiver, filter);
-		
+
 		Intent intent = new Intent(getApplicationContext(), BlePolingService.class);
 		intent.setAction("tellStatus");
 		startService(intent);
@@ -167,6 +168,5 @@ public class MainActivity extends ListActivity {
 			receiver = null;
 		}
 	}
-	
 
 }

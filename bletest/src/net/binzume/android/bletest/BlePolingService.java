@@ -3,6 +3,7 @@ package net.binzume.android.bletest;
 import java.util.HashMap;
 
 import android.app.AlarmManager;
+import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
@@ -17,9 +18,9 @@ import android.os.SystemClock;
 import android.util.Log;
 
 public class BlePolingService extends Service implements BLETagDevice.TagDeviceEventListener {
-	
+
 	private static final String TAG = BlePolingService.class.getName();
-	
+
 	private final Handler handler = new Handler();
 	private final HashMap<String, BLETagDevice> devices = new HashMap<String, BLETagDevice>();
 
@@ -28,7 +29,7 @@ public class BlePolingService extends Service implements BLETagDevice.TagDeviceE
 			return devices.values().toArray(new BLETagDevice[0]);
 		}
 	}
-	
+
 	private int count = 0;
 
 	@Override
@@ -37,7 +38,7 @@ public class BlePolingService extends Service implements BLETagDevice.TagDeviceE
 		addDevice("00:14:DC:42:00:1B");
 		addDevice("00:A8:DC:42:00:1B");
 		addDevice("00:1B:DC:42:03:4E");
-		setPollingInterval(600);
+		setPollingInterval(300);
 
 		/*
 		Log.d("saifu", "startLeScan");
@@ -61,6 +62,14 @@ public class BlePolingService extends Service implements BLETagDevice.TagDeviceE
 			}
 		}, 5000);
 		*/
+
+		Notification.Builder notificationBuilder = new Notification.Builder(getApplicationContext());
+		notificationBuilder.setTicker("BLEPolling");
+		notificationBuilder.setSmallIcon(R.drawable.ic_launcher);
+		notificationBuilder.setContentTitle("BLEPollingService");
+		notificationBuilder.setContentText("BLEPollingService");
+		notificationBuilder.setAutoCancel(false);
+		startForeground(1, notificationBuilder.build());
 		super.onCreate();
 	}
 
@@ -72,10 +81,16 @@ public class BlePolingService extends Service implements BLETagDevice.TagDeviceE
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		if (intent == null) return START_STICKY;
+		if (intent == null)
+			return START_STICKY;
 		if ("close".equals(intent.getAction())) {
-			terminate();
-			//stopSelf();
+			BLETagDevice d = findDevice(intent.getStringExtra("addr"));
+			if (d != null) {
+				d.disconnect();
+			} else {
+				terminate();
+				stopSelf();
+			}
 			return START_NOT_STICKY;
 		} else if ("tellStatus".equals(intent.getAction()) || "poll".equals(intent.getAction())) {
 			BLETagDevice d = findDevice(intent.getStringExtra("addr"));
@@ -95,7 +110,6 @@ public class BlePolingService extends Service implements BLETagDevice.TagDeviceE
 			}
 		}
 
-		
 		return START_STICKY;
 	}
 
@@ -125,18 +139,19 @@ public class BlePolingService extends Service implements BLETagDevice.TagDeviceE
 		for (BLETagDevice d : devices.values()) {
 			d.disconnect();
 		}
+		// stopForeground();
 	}
-	
+
 	private void checkDevices() {
 		Object[] dd = devices.values().toArray();
-		
+
 		if (dd.length > 0) {
-			checkDevice((BLETagDevice)dd[count % dd.length]);
-			count ++;
+			checkDevice((BLETagDevice) dd[count % dd.length]);
+			count++;
 		}
 	}
-	
-	private void checkDevice(BLETagDevice d) {
+
+	private void checkDevice(final BLETagDevice d) {
 		if (d.getConnectState() == BLETagDevice.CONNECT_STATE_DISCONNECTED) {
 
 			final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
@@ -146,7 +161,7 @@ public class BlePolingService extends Service implements BLETagDevice.TagDeviceE
 				Log.e(TAG, "Available Bluetooth Adapter not found.");
 				return;
 			}
-						
+
 			BluetoothDevice dev = bluetoothAdapter.getRemoteDevice(d.addr);
 			if (dev != null) {
 				d.connect(dev, handler, this);
@@ -161,10 +176,14 @@ public class BlePolingService extends Service implements BLETagDevice.TagDeviceE
 			}
 		} else if (d.isConnected()) {
 			d.readRemoteRssi();
-			d.checkBattery();
+			handler.postDelayed(new Runnable() {
+				public void run() {
+					d.checkBattery();
+				}
+			}, 1000);
 		}
 	}
-	
+
 	private void setPollingInterval(int interval) {
 		AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
 		Intent intent = new Intent(getApplicationContext(), BlePolingService.class);
@@ -201,7 +220,7 @@ public class BlePolingService extends Service implements BLETagDevice.TagDeviceE
 		intent.putExtra("connected", d.isConnected());
 		sendBroadcast(intent);
 	}
-	
+
 	@Override
 	public void onPressButton(final BLETagDevice d, int st) {
 		Intent intent = new Intent("button_pressed");
@@ -209,7 +228,7 @@ public class BlePolingService extends Service implements BLETagDevice.TagDeviceE
 		intent.putExtra("addr", d.addr);
 		intent.putExtra("st", st);
 		sendBroadcast(intent);
-		
+
 		if (st == 1) {
 			new AsyncTask<Void, Void, Void>() {
 				@Override
@@ -224,7 +243,7 @@ public class BlePolingService extends Service implements BLETagDevice.TagDeviceE
 	@Override
 	public void onLost(BLETagDevice d) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 }
