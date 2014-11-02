@@ -198,8 +198,6 @@ public class BlePolingService extends Service implements BLETagDevice.TagDeviceE
 		Intent intent = new Intent("bletag_status");
 		intent.putExtra("device", d);
 		intent.putExtra("addr", d.addr);
-		intent.putExtra("name", d.name);
-		intent.putExtra("rssi", d.lastRssi);
 		intent.putExtra("connected", d.isConnected());
 		sendBroadcast(intent);
 	}
@@ -209,7 +207,6 @@ public class BlePolingService extends Service implements BLETagDevice.TagDeviceE
 		Intent intent = new Intent("button_pressed");
 		intent.putExtra("device", d);
 		intent.putExtra("addr", d.addr);
-		intent.putExtra("rssi", d.lastRssi);
 		intent.putExtra("st", st);
 		sendBroadcast(intent);
 		
